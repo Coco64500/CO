@@ -671,65 +671,82 @@ function exportPDF(){
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
     const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
     const now = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    const sorted = [...races].sort((a,b) => b.id - a.id);
 
-    // ── HEADER BAR ──
+    // ════════════════════════════════════════════
+    // HELPERS
+    // ════════════════════════════════════════════
+    const addFooters = () => {
+      const n = doc.internal.getNumberOfPages();
+      for(let p = 1; p <= n; p++){
+        doc.setPage(p);
+        doc.setFillColor(26, 58, 42);
+        doc.rect(0, H - 10, W, 10, 'F');
+        doc.setFontSize(7); doc.setFont('helvetica','normal');
+        doc.setTextColor(116, 198, 157);
+        doc.text("Course d'Orientation - Espace Enseignant", 14, H - 4);
+        doc.text('Page ' + p + ' / ' + n, W - 14, H - 4, { align:'right' });
+      }
+    };
+
+    const sectionTitle = (label, y) => {
+      doc.setFontSize(9); doc.setFont('helvetica','bold');
+      doc.setTextColor(26, 58, 42);
+      doc.text(label, 14, y);
+      doc.setDrawColor(116, 198, 157); doc.setLineWidth(0.35);
+      doc.line(14, y + 2, W - 14, y + 2);
+    };
+
+    // ════════════════════════════════════════════
+    // PAGE 1 — SYNTHÈSE
+    // ════════════════════════════════════════════
+
+    // Header
     doc.setFillColor(26, 58, 42);
     doc.rect(0, 0, W, 28, 'F');
-
-    // Compass icon (simplified as circle + cross)
     doc.setDrawColor(116, 198, 157); doc.setLineWidth(0.6);
     doc.circle(14, 14, 7, 'S');
     doc.line(14, 7.5, 14, 20.5); doc.line(7.5, 14, 20.5, 14);
     doc.setFillColor(240, 165, 0);
     doc.triangle(12.5, 9, 15.5, 9, 14, 7, 'F');
-
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(20); doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(255,255,255);
     doc.text("COURSE D'ORIENTATION", 25, 12);
     doc.setFontSize(9); doc.setTextColor(116, 198, 157);
-    doc.text('Rapport des résultats — exporté le ' + now, 25, 20);
+    doc.text('Rapport des resultats — exporte le ' + now, 25, 20);
 
-    // ── STATS ROW ──
+    // Stats boxes
     const complets = races.filter(r=>r.complete).length;
     const best = races.filter(r=>r.complete).sort((a,b)=>a.finalTime-b.finalTime)[0];
-
+    const avecProjet = races.filter(r=>r.projet && r.projet.length).length;
     const statsY = 36;
-    const boxes = [
-      { label:'COURSES', value: String(races.length),        color:[240,248,244] },
-      { label:'COMPLETS', value: String(complets),           color:[232,246,238] },
-      { label:'RECORD',   value: best ? fmtFull(best.finalTime) : '—', color:[255,248,230] },
-    ];
-    boxes.forEach((b, i) => {
-      const x = 14 + i * 60;
+    [
+      { label:'COURSES',     value: String(races.length), color:[240,248,244] },
+      { label:'COMPLETS',    value: String(complets),     color:[232,246,238] },
+      { label:'RECORD',      value: best ? fmtFull(best.finalTime) : '—', color:[255,248,230] },
+      { label:'AVEC PROJET', value: String(avecProjet),   color:[235,240,255] },
+    ].forEach((b, i) => {
+      const x = 14 + i * 45.5;
       doc.setFillColor(...b.color);
-      doc.roundedRect(x, statsY, 54, 18, 3, 3, 'F');
-      doc.setFontSize(16); doc.setFont('helvetica','bold');
-      doc.setTextColor(26, 58, 42);
-      doc.text(b.value, x + 27, statsY + 10, { align:'center' });
-      doc.setFontSize(7); doc.setFont('helvetica','normal');
-      doc.setTextColor(100, 130, 110);
-      doc.text(b.label, x + 27, statsY + 15.5, { align:'center' });
+      doc.roundedRect(x, statsY, 40, 16, 2, 2, 'F');
+      doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(26, 58, 42);
+      doc.text(b.value, x + 20, statsY + 8, { align:'center' });
+      doc.setFontSize(6); doc.setFont('helvetica','normal'); doc.setTextColor(100, 130, 110);
+      doc.text(b.label, x + 20, statsY + 13, { align:'center' });
     });
 
-    // ── SECTION TITLE ──
-    doc.setFontSize(10); doc.setFont('helvetica','bold');
-    doc.setTextColor(26, 58, 42);
-    doc.text('DÉTAIL DES COURSES', 14, 64);
-    doc.setDrawColor(116, 198, 157); doc.setLineWidth(0.4);
-    doc.line(14, 66, W - 14, 66);
-
-    // ── TABLE ──
-    const sorted = [...races].sort((a,b) => b.id - a.id);
-    const rows = sorted.map((r, i) => {
+    // Summary table
+    sectionTitle('TABLEAU DE SYNTHESE', 61);
+    const summaryRows = sorted.map((r, i) => {
       const pct = Math.round((r.validated / r.nbPostes) * 100);
-      const medal = r.complete ? '🥇' : pct >= 75 ? '🥈' : pct >= 50 ? '🥉' : '—';
       const dateStr = new Date(r.date).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+      const projetStr = (r.projet && r.projet.length) ? r.projet.join(' > ') : '—';
       return [
         String(i + 1),
         r.prenom,
         fmtFull(r.finalTime),
-        r.validated + ' / ' + r.nbPostes,
+        r.validated + '/' + r.nbPostes,
         pct + '%',
         r.complete ? 'Complet' : 'Incomplet',
         dateStr,
@@ -737,53 +754,229 @@ function exportPDF(){
     });
 
     doc.autoTable({
-      startY: 70,
-      head: [['#', 'Prénom', 'Temps', 'Postes', '%', 'Statut', 'Date']],
-      body: rows,
+      startY: 65,
+      head: [['#', 'Prenom', 'Temps', 'Postes', '%', 'Statut', 'Date']],
+      body: summaryRows,
       theme: 'plain',
-      styles: { font:'helvetica', fontSize:9, cellPadding:3.5, textColor:[40,60,50], lineColor:[220,235,225], lineWidth:0.3 },
-      headStyles: { fillColor:[26,58,42], textColor:[116,198,157], fontStyle:'bold', fontSize:8, cellPadding:3 },
+      styles: { font:'helvetica', fontSize:8, cellPadding:3, textColor:[40,60,50], lineColor:[220,235,225], lineWidth:0.25 },
+      headStyles: { fillColor:[26,58,42], textColor:[116,198,157], fontStyle:'bold', fontSize:7.5, cellPadding:2.5 },
       alternateRowStyles: { fillColor:[245,252,248] },
       columnStyles: {
-        0: { cellWidth:8,  halign:'center' },
-        1: { cellWidth:32, fontStyle:'bold' },
-        2: { cellWidth:28, halign:'center' },
-        3: { cellWidth:20, halign:'center' },
-        4: { cellWidth:14, halign:'center' },
-        5: { cellWidth:22, halign:'center' },
-        6: { cellWidth:34, halign:'center', fontSize:8 },
+        0: { cellWidth:7,  halign:'center' },
+        1: { cellWidth:30, fontStyle:'bold' },
+        2: { cellWidth:27, halign:'center' },
+        3: { cellWidth:16, halign:'center' },
+        4: { cellWidth:12, halign:'center' },
+        5: { cellWidth:21, halign:'center' },
+        6: { cellWidth:33, halign:'center', fontSize:7 },
       },
       didDrawCell: (data) => {
-        // Color the Statut cell
         if(data.section==='body' && data.column.index===5){
-          const isComplete = data.cell.raw === 'Complet';
-          doc.setFillColor(isComplete ? 232 : 254, isComplete ? 246 : 235, isComplete ? 238 : 235);
+          const ok = data.cell.raw === 'Complet';
+          doc.setFillColor(ok?232:254, ok?246:235, ok?238:235);
           doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
-          doc.setTextColor(isComplete ? 45 : 180, isComplete ? 106 : 80, isComplete ? 79 : 70);
-          doc.setFontSize(8); doc.setFont('helvetica','bold');
+          doc.setTextColor(ok?45:180, ok?106:80, ok?79:70);
+          doc.setFontSize(7); doc.setFont('helvetica','bold');
           doc.text(data.cell.raw, data.cell.x + data.cell.width/2, data.cell.y + data.cell.height/2 + 1, {align:'center'});
         }
       },
     });
 
-    // ── FOOTER ──
-    const pageCount = doc.internal.getNumberOfPages();
-    for(let p = 1; p <= pageCount; p++){
-      doc.setPage(p);
+    // ════════════════════════════════════════════
+    // PAGE(S) 2+ — DETAIL PAR ELEVE
+    // ════════════════════════════════════════════
+    doc.addPage();
+
+    // Page header
+    doc.setFillColor(26, 58, 42);
+    doc.rect(0, 0, W, 18, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(255,255,255);
+    doc.text("ANALYSE DETAILLEE DES PARCOURS", 14, 11);
+    doc.setFontSize(8); doc.setTextColor(116, 198, 157);
+    doc.text('Projet prevu vs ordre de passage reel', W - 14, 11, { align:'right' });
+
+    let curY = 26;
+    const cardMargin = 14;
+    const cardW = W - cardMargin * 2;
+
+    sorted.forEach((r, ri) => {
+      const pct = Math.round((r.validated / r.nbPostes) * 100);
+      const hasProjet = r.projet && r.projet.length > 0;
+      const realOrder = r.laps ? [...r.laps].sort((a,b) => a.time - b.time) : [];
+
+      // Estimate card height
+      const maxRows = Math.max(hasProjet ? r.projet.length : 0, realOrder.length, 1);
+      const cardH = 14 + maxRows * 7 + 8;
+
+      // Page break
+      if(curY + cardH > H - 14){
+        doc.addPage();
+        doc.setFillColor(26, 58, 42);
+        doc.rect(0, 0, W, 18, 'F');
+        doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(255,255,255);
+        doc.text("ANALYSE DETAILLEE DES PARCOURS (suite)", 14, 11);
+        curY = 26;
+      }
+
+      // Card background
+      doc.setFillColor(248, 252, 249);
+      doc.roundedRect(cardMargin, curY, cardW, cardH, 3, 3, 'F');
+      doc.setDrawColor(200, 230, 210); doc.setLineWidth(0.3);
+      doc.roundedRect(cardMargin, curY, cardW, cardH, 3, 3, 'S');
+
+      // Card header stripe
       doc.setFillColor(26, 58, 42);
-      doc.rect(0, doc.internal.pageSize.getHeight() - 10, W, 10, 'F');
-      doc.setFontSize(7); doc.setFont('helvetica','normal');
-      doc.setTextColor(116, 198, 157);
-      doc.text("Course d'Orientation - Espace Enseignant", 14, doc.internal.pageSize.getHeight() - 4);
-      doc.text('Page ' + p + ' / ' + pageCount, W - 14, doc.internal.pageSize.getHeight() - 4, { align:'right' });
-    }
+      doc.roundedRect(cardMargin, curY, cardW, 12, 3, 3, 'F');
+      doc.rect(cardMargin, curY + 6, cardW, 6, 'F'); // bottom of rounded to flat
+
+      // Medal + name
+      const statusColor = r.complete ? [116,198,157] : pct>=50 ? [240,165,0] : [230,57,70];
+      doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+      const medal = r.complete ? '[Or]' : pct>=75 ? '[Argent]' : pct>=50 ? '[Bronze]' : '';
+      doc.text((ri+1) + '. ' + r.prenom.toUpperCase(), cardMargin + 3, curY + 8);
+
+      // Time badge
+      doc.setFontSize(10); doc.setTextColor(...statusColor);
+      doc.text(fmtFull(r.finalTime), cardMargin + cardW - 3, curY + 8, { align:'right' });
+
+      // Status pill area
+      doc.setFontSize(7.5); doc.setTextColor(...statusColor);
+      const statusLabel = r.complete ? 'COMPLET' : pct + '% — ' + r.validated + '/' + r.nbPostes + ' postes';
+      doc.text(statusLabel, cardMargin + 3, curY + 8 + 5.5);
+
+      // Date
+      const dateStr = new Date(r.date).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+      doc.setFontSize(7); doc.setTextColor(180,200,185);
+      doc.text(dateStr, cardMargin + cardW - 3, curY + 8 + 5.5, { align:'right' });
+
+      // Columns header
+      const colY = curY + 18;
+      const col1X = cardMargin + 3;
+      const col2X = cardMargin + 3 + cardW * 0.08;
+      const col3X = cardMargin + 3 + cardW * 0.42;
+      const col4X = cardMargin + 3 + cardW * 0.58;
+      const col5X = cardMargin + 3 + cardW * 0.72;
+      const col6X = cardMargin + 3 + cardW * 0.86;
+
+      doc.setFontSize(6.5); doc.setFont('helvetica','bold');
+      doc.setTextColor(100, 140, 110);
+      doc.text('Etape', col1X, colY);
+      doc.text('Projet prevu', col2X, colY);
+      doc.text('Poste reel', col3X, colY);
+      doc.text('Temps', col4X, colY);
+      doc.text('Split', col5X, colY);
+      doc.text('Ecart projet', col6X, colY);
+
+      // Separator line
+      doc.setDrawColor(210, 230, 215); doc.setLineWidth(0.2);
+      doc.line(col1X, colY + 1.5, cardMargin + cardW - 3, colY + 1.5);
+
+      // Rows
+      const maxR = Math.max(hasProjet ? r.projet.length : 0, realOrder.length);
+      let prevTime = 0;
+      for(let step = 0; step < maxR; step++){
+        const rowY = colY + 5 + step * 7;
+        const projetNum  = hasProjet ? r.projet[step] : null;
+        const realLap    = realOrder[step] || null;
+        const split      = realLap ? realLap.time - prevTime : null;
+        if(realLap) prevTime = realLap.time;
+
+        // Row bg alternating
+        if(step % 2 === 0){
+          doc.setFillColor(240, 248, 243);
+          doc.rect(col1X - 1, rowY - 4.5, cardW - 4, 6.5, 'F');
+        }
+
+        doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+
+        // Step number
+        doc.setTextColor(150, 170, 155);
+        doc.text(String(step + 1), col1X, rowY);
+
+        // Projet prevu bubble
+        if(projetNum !== null){
+          doc.setFillColor(26, 58, 42);
+          doc.roundedRect(col2X, rowY - 4, 9, 5.5, 1, 1, 'F');
+          doc.setTextColor(116, 198, 157);
+          doc.setFontSize(6.5); doc.setFont('helvetica','bold');
+          doc.text(String(projetNum), col2X + 4.5, rowY - 0.2, { align:'center' });
+        } else {
+          doc.setTextColor(200, 215, 205);
+          doc.text('—', col2X + 4.5, rowY, { align:'center' });
+        }
+
+        // Poste reel
+        if(realLap){
+          const matched = projetNum !== null && projetNum === realLap.num;
+          if(matched){
+            doc.setFillColor(116, 198, 157);
+          } else {
+            doc.setFillColor(240, 100, 80);
+          }
+          doc.roundedRect(col3X, rowY - 4, 9, 5.5, 1, 1, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(6.5); doc.setFont('helvetica','bold');
+          doc.text(String(realLap.num), col3X + 4.5, rowY - 0.2, { align:'center' });
+
+          // Temps total
+          doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+          doc.setTextColor(50, 80, 60);
+          doc.text(fmtFull(realLap.time), col4X, rowY);
+
+          // Split
+          doc.setTextColor(100, 140, 110);
+          doc.text('+' + fmtFull(split), col5X, rowY);
+
+          // Ecart projet
+          if(projetNum !== null){
+            doc.setFont('helvetica','bold'); doc.setFontSize(7);
+            if(matched){
+              doc.setTextColor(60, 140, 90);
+              doc.text('OK', col6X, rowY);
+            } else {
+              doc.setTextColor(200, 70, 60);
+              doc.text('Prevu ' + projetNum, col6X, rowY);
+            }
+          }
+        } else {
+          doc.setTextColor(200, 215, 205); doc.setFontSize(7.5);
+          doc.text('non effectue', col3X, rowY);
+        }
+      }
+
+      // If no laps and no projet
+      if(maxR === 0){
+        doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(180, 200, 185);
+        doc.text('Aucun poste valide — pas de projet enregistre', col2X, colY + 6);
+      }
+
+      // Compliance score
+      if(hasProjet && realOrder.length > 0){
+        const maxComp = Math.min(r.projet.length, realOrder.length);
+        let matches = 0;
+        for(let s=0; s<maxComp; s++){
+          if(r.projet[s] === realOrder[s].num) matches++;
+        }
+        const score = Math.round((matches / maxComp) * 100);
+        const scoreY = curY + cardH - 4;
+        doc.setFontSize(7); doc.setFont('helvetica','bold');
+        const scoreColor = score >= 80 ? [45,106,79] : score >= 50 ? [180,120,20] : [180,60,50];
+        doc.setTextColor(...scoreColor);
+        doc.text('Respect du projet : ' + score + '% (' + matches + '/' + maxComp + ' postes dans lordre prevu)', cardMargin + 3, scoreY);
+      }
+
+      curY += cardH + 6;
+    });
+
+    // ── FOOTERS ──
+    addFooters();
 
     // ── SAVE ──
     const filename = 'resultats_orientation_' + new Date().toISOString().slice(0,10) + '.pdf';
     doc.save(filename);
 
   } catch(e) {
-    alert('Erreur lors de la génération PDF : ' + e.message);
+    alert('Erreur lors de la generation PDF : ' + e.message);
     console.error(e);
   } finally {
     btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 14v2a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10 3v9m0 0-3-3m3 3 3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> EXPORTER EN PDF';
