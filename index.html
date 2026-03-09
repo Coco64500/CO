@@ -94,6 +94,29 @@
   @keyframes row-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
   .race-row{animation:row-in .25s ease-out both;}
 
+
+  /* TABS */
+  .tab-bar { display:flex; background:rgba(255,255,255,.06); border-radius:12px; padding:4px; gap:4px; }
+  .tab-btn { flex:1; padding:10px 0; border:none; border-radius:9px; font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:.08em; cursor:pointer; transition:all .2s; background:transparent; color:rgba(255,255,255,.4); }
+  .tab-btn.active { background:rgba(116,198,157,.18); color:var(--lime); box-shadow:0 2px 8px rgba(116,198,157,.15); }
+
+  /* PROJET — sortable list */
+  .projet-item { display:flex; align-items:center; gap:12px; background:rgba(255,255,255,.06); border:1.5px solid rgba(255,255,255,.1); border-radius:13px; padding:10px 14px; margin-bottom:8px; cursor:grab; user-select:none; transition:all .15s; }
+  .projet-item:active { cursor:grabbing; }
+  .projet-item.dragging { opacity:.4; transform:scale(.97); }
+  .projet-item.drag-over { border-color:var(--lime); background:rgba(116,198,157,.12); }
+  .projet-step { font-family:'Bebas Neue',sans-serif; font-size:11px; color:rgba(255,255,255,.3); letter-spacing:.08em; min-width:24px; }
+  .projet-num { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--leaf),var(--lime)); display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:18px; color:white; flex-shrink:0; }
+  .projet-handle { margin-left:auto; color:rgba(255,255,255,.2); }
+
+  /* PLANNED ROUTE strip in running screen */
+  .plan-strip { display:flex; gap:4px; flex-wrap:wrap; padding:8px 10px; background:rgba(255,255,255,.04); border-radius:12px; border:1px solid rgba(255,255,255,.07); }
+  .plan-pill { width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,.08); border:1.5px solid rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:12px; color:rgba(255,255,255,.5); flex-shrink:0; transition:all .3s; }
+  .plan-pill.done { background:linear-gradient(135deg,var(--leaf),var(--lime)); border-color:var(--lime); color:white; }
+  .plan-pill.current { border-color:var(--gold); color:var(--gold); box-shadow:0 0 8px rgba(240,165,0,.4); }
+
+  @keyframes tab-slide { from{opacity:0;transform:translateX(8px)} to{opacity:1;transform:translateX(0)} }
+  .tab-panel { animation:tab-slide .2s ease-out; }
   ::-webkit-scrollbar{width:4px;}
   ::-webkit-scrollbar-track{background:transparent;}
   ::-webkit-scrollbar-thumb{background:rgba(116,198,157,.3);border-radius:99px;}
@@ -103,11 +126,12 @@
 
 <!-- ══════════════ SCREEN 1 — SETUP ══════════════ -->
 <div id="screen-setup" class="screen active topo-bg">
-  <div class="flex flex-col h-full px-6 py-10 max-w-md mx-auto w-full">
+  <div class="flex flex-col h-full px-5 pt-8 pb-6 max-w-md mx-auto w-full">
 
-    <div class="text-center mb-8">
-      <div class="inline-flex items-center gap-3 mb-3">
-        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+    <!-- HEADER -->
+    <div class="text-center mb-6">
+      <div class="inline-flex items-center gap-3 mb-2">
+        <svg width="32" height="32" viewBox="0 0 36 36" fill="none">
           <circle cx="18" cy="18" r="17" stroke="#74c69d" stroke-width="2"/>
           <circle cx="18" cy="18" r="3" fill="#74c69d"/>
           <line x1="18" y1="1" x2="18" y2="9" stroke="#74c69d" stroke-width="2" stroke-linecap="round"/>
@@ -116,12 +140,25 @@
           <line x1="27" y1="18" x2="35" y2="18" stroke="#74c69d" stroke-width="2" stroke-linecap="round"/>
           <polygon points="18,6 21,14 18,12 15,14" fill="#f0a500"/>
         </svg>
-        <span class="font-display text-white" style="font-size:28px;letter-spacing:.05em;">ORIENTATION</span>
+        <span class="font-display text-white" style="font-size:26px;letter-spacing:.05em;">ORIENTATION</span>
       </div>
-      <p style="color:rgba(255,255,255,.4);font-size:12px;letter-spacing:.1em;text-transform:uppercase;">Suivi de course en temps réel</p>
+      <p style="color:rgba(255,255,255,.4);font-size:11px;letter-spacing:.1em;text-transform:uppercase;">Suivi de course en temps réel</p>
     </div>
 
-    <div class="flex-1 flex flex-col gap-6">
+    <!-- TABS -->
+    <div class="tab-bar mb-5">
+      <button class="tab-btn active" id="tab-infos" onclick="switchTab('infos')">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="display:inline;margin-right:5px;vertical-align:-2px;"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/><line x1="7" y1="6" x2="7" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="7" cy="4" r=".8" fill="currentColor"/></svg>
+        INFOS
+      </button>
+      <button class="tab-btn" id="tab-projet" onclick="switchTab('projet')">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="display:inline;margin-right:5px;vertical-align:-2px;"><path d="M2 4h10M2 7h7M2 10h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        PROJET
+      </button>
+    </div>
+
+    <!-- TAB: INFOS -->
+    <div id="panel-infos" class="flex-1 flex flex-col gap-5 tab-panel overflow-y-auto">
       <div>
         <label class="block text-xs font-semibold mb-2" style="color:var(--lime);letter-spacing:.12em;text-transform:uppercase;">Prénom du coureur</label>
         <input id="input-prenom" class="input-field" type="text" placeholder="Ex: Alex, Marie..." maxlength="20" autocomplete="off"/>
@@ -139,17 +176,28 @@
           <span style="font-size:11px;color:rgba(255,255,255,.3);">16 postes</span>
         </div>
       </div>
-      <div id="postes-preview" class="flex flex-wrap gap-2 justify-center py-2"></div>
+      <div id="postes-preview" class="flex flex-wrap gap-2 justify-center py-1"></div>
     </div>
 
-    <div class="mt-6">
+    <!-- TAB: PROJET -->
+    <div id="panel-projet" class="flex-1 flex-col gap-0 tab-panel overflow-y-auto" style="display:none;">
+      <div class="flex items-center justify-between mb-3">
+        <p style="color:rgba(255,255,255,.5);font-size:12px;line-height:1.4;">Glisse les postes pour définir<br>l'ordre de passage prévu.</p>
+        <button onclick="resetProjet()" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 12px;color:rgba(255,255,255,.4);font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;letter-spacing:.04em;">Réinitialiser</button>
+      </div>
+      <div id="projet-list"></div>
+      <p id="projet-hint" style="text-align:center;color:rgba(255,255,255,.2);font-size:12px;margin-top:8px;display:none;">Définis d'abord le nombre de postes dans l'onglet Infos</p>
+    </div>
+
+    <!-- BOTTOM -->
+    <div class="mt-4 pt-3" style="border-top:1px solid rgba(255,255,255,.07);">
       <button class="btn-primary" onclick="startCountdown()">
         <span class="flex items-center justify-center gap-2">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><polygon points="5,3 17,10 5,17"/></svg>
           LANCER LA COURSE
         </span>
       </button>
-      <button onclick="showScreen('pin')" style="background:transparent;border:none;color:rgba(255,255,255,.25);font-family:'DM Sans',sans-serif;font-size:12px;padding:14px 8px 0;cursor:pointer;display:flex;align-items:center;gap:6px;margin:0 auto;letter-spacing:.04em;">
+      <button onclick="showScreen('pin')" style="background:transparent;border:none;color:rgba(255,255,255,.22);font-family:'DM Sans',sans-serif;font-size:12px;padding:12px 8px 0;cursor:pointer;display:flex;align-items:center;gap:6px;margin:0 auto;letter-spacing:.04em;">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="3" y="6" width="8" height="6" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M4.5 6V4.5a2.5 2.5 0 0 1 5 0V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         Espace enseignant
       </button>
@@ -184,7 +232,16 @@
       </div>
     </div>
 
-    <div class="progress-track mb-4"><div class="progress-fill" id="run-progress" style="width:0%"></div></div>
+    <div class="progress-track mb-3"><div class="progress-fill" id="run-progress" style="width:0%"></div></div>
+
+    <!-- PLAN STRIP -->
+    <div id="plan-strip-wrap" style="display:none;margin-bottom:10px;">
+      <div class="flex items-center justify-between mb-1">
+        <p style="font-size:10px;font-weight:600;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;">Mon projet de course</p>
+        <button onclick="togglePlanStrip()" id="plan-toggle" style="background:none;border:none;color:rgba(255,255,255,.25);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">masquer</button>
+      </div>
+      <div class="plan-strip" id="plan-strip"></div>
+    </div>
 
     <div class="flex flex-col items-center justify-center py-3 running-indicator" style="background:rgba(255,255,255,.04);border-radius:20px;border:1.5px solid rgba(255,255,255,.08);">
       <div class="timer-display" id="timer-display">00:00</div>
@@ -333,7 +390,7 @@
 
 <script>
 // ─── STATE ────────────────────────────────────────────
-let state = { prenom:'', nbPostes:8, validated:[], laps:[], startTime:null, timerInterval:null, isRunning:false, finalTime:0 };
+let state = { prenom:'', nbPostes:8, validated:[], laps:[], startTime:null, timerInterval:null, isRunning:false, finalTime:0, projet:[] };
 
 // ─── AUDIO ────────────────────────────────────────────
 let audioCtx=null;
@@ -344,12 +401,137 @@ function beepCheckpoint(){ beep(1047,.06,'square',.3); }
 function beepCountdown(last){ if(last){beep(880,.08);setTimeout(()=>beep(1175,.12),100);setTimeout(()=>beep(1760,.2),220);}else beep(440,.12,'sine',.35); }
 function beepFinish(){ [0,150,300,500].forEach((d,i)=>setTimeout(()=>beep(440*[1,1.25,1.5,2][i],.15,'sine',.4),d)); }
 
+// ─── TABS & PROJET ────────────────────────────────────
+let currentTab = 'infos';
+let projetDragSrc = null;
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('panel-infos').style.display  = tab === 'infos'  ? 'flex'  : 'none';
+  document.getElementById('panel-projet').style.display = tab === 'projet' ? 'flex'  : 'none';
+  document.getElementById('tab-infos').classList.toggle('active',  tab === 'infos');
+  document.getElementById('tab-projet').classList.toggle('active', tab === 'projet');
+  if (tab === 'projet') renderProjetList();
+}
+
+function renderProjetList() {
+  const n = state.nbPostes;
+  const list = document.getElementById('projet-list');
+  const hint = document.getElementById('projet-hint');
+  if (n < 1) { list.innerHTML = ''; hint.style.display = 'block'; return; }
+  hint.style.display = 'none';
+
+  // Init projet order if empty or stale
+  if (state.projet.length !== n) {
+    state.projet = Array.from({length: n}, (_, i) => i + 1);
+  }
+
+  list.innerHTML = '';
+  state.projet.forEach((num, idx) => {
+    const item = document.createElement('div');
+    item.className = 'projet-item';
+    item.draggable = true;
+    item.dataset.idx = idx;
+    item.innerHTML = `
+      <span class="projet-step">${idx + 1}.</span>
+      <div class="projet-num">${num}</div>
+      <div style="flex:1;">
+        <p style="color:white;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.04em;">Poste ${num}</p>
+        <p style="color:rgba(255,255,255,.3);font-size:11px;">${idx === 0 ? 'Premier poste' : idx === n-1 ? 'Dernier poste' : 'Étape ' + (idx+1)}</p>
+      </div>
+      <div class="projet-handle">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="6" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="6" cy="9" r="1.5" fill="currentColor"/><circle cx="12" cy="9" r="1.5" fill="currentColor"/><circle cx="6" cy="13" r="1.5" fill="currentColor"/><circle cx="12" cy="13" r="1.5" fill="currentColor"/></svg>
+      </div>`;
+
+    // Drag events
+    item.addEventListener('dragstart', e => {
+      projetDragSrc = idx;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      document.querySelectorAll('.projet-item').forEach(i => i.classList.remove('drag-over'));
+    });
+    item.addEventListener('dragover', e => {
+      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+      document.querySelectorAll('.projet-item').forEach(i => i.classList.remove('drag-over'));
+      item.classList.add('drag-over');
+    });
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      if (projetDragSrc === null || projetDragSrc === idx) return;
+      const moved = state.projet.splice(projetDragSrc, 1)[0];
+      state.projet.splice(idx, 0, moved);
+      renderProjetList();
+      beep(600, .05, 'square', .2);
+    });
+
+    // Touch drag (mobile)
+    let touchStartY = 0, touchStartIdx = 0;
+    item.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; touchStartIdx = idx; item.style.opacity = '.6'; }, {passive:true});
+    item.addEventListener('touchend', e => {
+      item.style.opacity = '';
+      const endY = e.changedTouches[0].clientY;
+      const items = [...document.querySelectorAll('.projet-item')];
+      const target = items.find(el => {
+        const r = el.getBoundingClientRect();
+        return endY >= r.top && endY <= r.bottom;
+      });
+      if (target && target !== item) {
+        const targetIdx = parseInt(target.dataset.idx);
+        const moved = state.projet.splice(touchStartIdx, 1)[0];
+        state.projet.splice(targetIdx, 0, moved);
+        renderProjetList();
+        beep(600, .05, 'square', .2);
+      }
+    }, {passive:true});
+
+    list.appendChild(item);
+  });
+}
+
+function resetProjet() {
+  state.projet = Array.from({length: state.nbPostes}, (_, i) => i + 1);
+  renderProjetList();
+}
+
+function buildPlanStrip() {
+  const wrap = document.getElementById('plan-strip-wrap');
+  const strip = document.getElementById('plan-strip');
+  if (!state.projet.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  strip.innerHTML = state.projet.map(num =>
+    `<div class="plan-pill" id="pill-${num}">${num}</div>`
+  ).join('');
+}
+
+function updatePlanStrip() {
+  if (!state.projet.length) return;
+  state.projet.forEach((num, idx) => {
+    const pill = document.getElementById('pill-' + num);
+    if (!pill) return;
+    const done = state.validated.includes(num);
+    const isNext = !done && state.projet.find(n => !state.validated.includes(n)) === num;
+    pill.className = 'plan-pill' + (done ? ' done' : isNext ? ' current' : '');
+  });
+}
+
+let planVisible = true;
+function togglePlanStrip() {
+  planVisible = !planVisible;
+  const strip = document.getElementById('plan-strip');
+  const btn = document.getElementById('plan-toggle');
+  strip.style.display = planVisible ? '' : 'none';
+  btn.textContent = planVisible ? 'masquer' : 'afficher';
+}
+
 // ─── SETUP ────────────────────────────────────────────
 function renderPostesPreview(){
   const c=document.getElementById('postes-preview'); c.innerHTML='';
   for(let i=1;i<=state.nbPostes;i++){ const d=document.createElement('div'); d.style.cssText="width:28px;height:28px;border-radius:50%;background:rgba(116,198,157,.15);border:1.5px solid rgba(116,198,157,.3);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;color:rgba(116,198,157,.7);"; d.textContent=i; c.appendChild(d); }
 }
-function changePostes(d){ state.nbPostes=Math.min(16,Math.max(1,state.nbPostes+d)); document.getElementById('nb-postes').textContent=state.nbPostes; document.getElementById('stepper-bar').style.width=((state.nbPostes/16)*100)+'%'; renderPostesPreview(); beep(d>0?600:400,.05,'square',.2); }
+function changePostes(d){ state.nbPostes=Math.min(16,Math.max(1,state.nbPostes+d)); document.getElementById('nb-postes').textContent=state.nbPostes; document.getElementById('stepper-bar').style.width=((state.nbPostes/16)*100)+'%'; renderPostesPreview(); state.projet=[]; if(currentTab==='projet') renderProjetList(); beep(d>0?600:400,.05,'square',.2); }
 
 // ─── SCREENS ──────────────────────────────────────────
 function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById('screen-'+id).classList.add('active'); }
@@ -377,6 +559,7 @@ function startRace(){
   buildCheckpointGrid();
   state.startTime=performance.now(); state.isRunning=true; state.laps=[];
   state.timerInterval=setInterval(updateTimer,50);
+  buildPlanStrip();
 }
 function buildCheckpointGrid(){
   const g=document.getElementById('checkpoint-grid'); g.innerHTML='';
@@ -389,7 +572,7 @@ function validateCheckpoint(num){
   const e=performance.now()-state.startTime; state.validated.push(num); state.laps.push({num,time:e});
   const b=document.getElementById(`cp-${num}`); b.classList.add('validated');
   b.innerHTML=`<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10l5 5 7-8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="checkpoint-label" style="color:rgba(255,255,255,.9)">✓ ${num}</span>`;
-  beepCheckpoint(); updateRunProgress();
+  beepCheckpoint(); updateRunProgress(); updatePlanStrip();
   if(state.validated.length===state.nbPostes){ const s=document.getElementById('btn-stop'); if(s){ s.style.animation='none'; s.style.animation='stop-pulse 1s ease-in-out infinite'; } }
 }
 function updateRunProgress(){ const p=(state.validated.length/state.nbPostes)*100; document.getElementById('run-progress').style.width=p+'%'; document.getElementById('postes-done').textContent=state.validated.length; }
@@ -414,11 +597,11 @@ function showResults(){
   const sorted=[...state.laps].sort((a,b)=>a.time-b.time); let prev=0;
   L.innerHTML=sorted.map(l=>{ const sp=l.time-prev; prev=l.time; return `<div class="lap-item"><div class="flex items-center gap-3"><div style="width:28px;height:28px;border-radius:50%;background:rgba(116,198,157,.15);border:1px solid rgba(116,198,157,.3);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--lime);">${l.num}</div><div><p style="color:rgba(255,255,255,.8);font-weight:500;">Poste ${l.num}</p><p style="color:rgba(255,255,255,.35);font-size:12px;">+${fmtFull(sp)}</p></div></div><div class="font-display text-right" style="font-size:18px;color:white;">${fmtFull(l.time)}</div></div>`; }).join('');
 }
-function newRace(){ showScreen('setup'); document.getElementById('countdown-display').style.color='white'; document.getElementById('countdown-display').textContent='3'; }
+function newRace(){ showScreen('setup'); document.getElementById('countdown-display').style.color='white'; document.getElementById('countdown-display').textContent='3'; switchTab('infos'); }
 
 // ─── SAVE / LOAD (localStorage) ───────────────────────
 function saveRace(){
-  const record={ id:Date.now(), prenom:state.prenom, nbPostes:state.nbPostes, validated:state.validated.length, finalTime:state.finalTime, laps:state.laps, date:new Date().toISOString(), complete:state.validated.length===state.nbPostes };
+  const record={ id:Date.now(), prenom:state.prenom, nbPostes:state.nbPostes, validated:state.validated.length, finalTime:state.finalTime, laps:state.laps, projet:state.projet.slice(), date:new Date().toISOString(), complete:state.validated.length===state.nbPostes };
   const arr=getRaces(); arr.push(record); localStorage.setItem('orientation_races',JSON.stringify(arr));
 }
 function getRaces(){ try{ return JSON.parse(localStorage.getItem('orientation_races')||'[]'); }catch{ return []; } }
@@ -468,7 +651,8 @@ function renderProfTable(){
     const medal=r.complete?'🥇':pct>=75?'🥈':pct>=50?'🥉':'🏃';
     const dateStr=new Date(r.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
     const bar=r.complete?'var(--lime)':pct>=50?'var(--gold)':'#e63946';
-    return `<div class="race-row" style="animation-delay:${i*.04}s"><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-3"><span style="font-size:22px;">${medal}</span><div><p class="font-display text-white" style="font-size:20px;letter-spacing:.03em;">${r.prenom}</p><p style="color:rgba(255,255,255,.3);font-size:11px;">${dateStr}</p></div></div><div class="text-right"><p class="font-display text-white" style="font-size:20px;">${fmtFull(r.finalTime)}</p><p style="color:rgba(255,255,255,.35);font-size:12px;">${r.validated}/${r.nbPostes} postes</p></div></div><div style="height:4px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${bar};border-radius:99px;transition:width .5s;"></div></div></div>`;
+    const projetRow = (r.projet && r.projet.length) ? `<div style="margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.07em;flex-shrink:0;">Projet :</span>${r.projet.map((n,i)=>`<span style="font-family:'Bebas Neue',sans-serif;font-size:12px;background:rgba(255,255,255,.07);border-radius:99px;padding:2px 8px;color:rgba(255,255,255,.5);">${i+1}→${n}</span>`).join('')}</div>` : '';
+    return `<div class="race-row" style="animation-delay:${i*.04}s"><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-3"><span style="font-size:22px;">${medal}</span><div><p class="font-display text-white" style="font-size:20px;letter-spacing:.03em;">${r.prenom}</p><p style="color:rgba(255,255,255,.3);font-size:11px;">${dateStr}</p></div></div><div class="text-right"><p class="font-display text-white" style="font-size:20px;">${fmtFull(r.finalTime)}</p><p style="color:rgba(255,255,255,.35);font-size:12px;">${r.validated}/${r.nbPostes} postes</p></div></div><div style="height:4px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${bar};border-radius:99px;transition:width .5s;"></div></div>${projetRow}</div>`;
   }).join('');
 }
 
