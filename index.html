@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🧭 Course d'Orientation</title>
+
+<!-- ═══ PWA ═══ -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#1a3a2a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Orientation">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --forest:#1a3a2a; --leaf:#2d6a4f; --lime:#74c69d;
+    --sand:#f8f4ef;   --gold:#f0a500; --white:#ffffff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{font-family:'DM Sans',sans-serif;background:var(--sand);min-height:100vh;overflow-x:hidden;}
+  .font-display{font-family:'Bebas Neue',sans-serif;}
+
+  .screen{display:none;min-height:100vh;flex-direction:column;}
+  .screen.active{display:flex;}
+
+  .topo-bg{
+    background-color:var(--forest);
+    background-image:
+      repeating-radial-gradient(ellipse at 30% 40%,transparent 0,transparent 40px,rgba(116,198,157,.06) 40px,rgba(116,198,157,.06) 41px),
+      repeating-radial-gradient(ellipse at 70% 60%,transparent 0,transparent 60px,rgba(116,198,157,.04) 60px,rgba(116,198,157,.04) 61px),
+      repeating-radial-gradient(ellipse at 50% 50%,transparent 0,transparent 80px,rgba(116,198,157,.03) 80px,rgba(116,198,157,.03) 81px);
+  }
+
+  .timer-display{font-family:'Bebas Neue',sans-serif;font-size:clamp(56px,18vw,96px);letter-spacing:.04em;line-height:1;color:var(--white);text-shadow:0 0 40px rgba(116,198,157,.4);}
+  .timer-ms{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,8vw,48px);color:var(--lime);opacity:.9;}
+
+  .countdown-num{font-family:'Bebas Neue',sans-serif;font-size:clamp(120px,40vw,240px);line-height:1;animation:countdown-pop .8s ease-out forwards;}
+  @keyframes countdown-pop{0%{transform:scale(1.6);opacity:0}30%{transform:scale(.95);opacity:1}70%{transform:scale(1);opacity:1}100%{transform:scale(.6);opacity:0}}
+
+  .checkpoint-btn{aspect-ratio:1;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:clamp(20px,6vw,30px);transition:all .2s cubic-bezier(.34,1.56,.64,1);border:2.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);cursor:pointer;position:relative;overflow:hidden;user-select:none;}
+  .checkpoint-btn::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(116,198,157,.3),transparent 70%);opacity:0;transition:opacity .3s;}
+  .checkpoint-btn.validated{background:linear-gradient(135deg,var(--leaf),var(--lime));border-color:var(--lime);color:var(--white);transform:scale(.97);box-shadow:0 4px 20px rgba(116,198,157,.35);}
+  .checkpoint-btn.validated::before{opacity:1;}
+  .checkpoint-btn:active{transform:scale(.9);}
+  .checkpoint-label{font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:.05em;opacity:.7;text-transform:uppercase;}
+
+  @keyframes pulse-ring{0%{transform:scale(.9);box-shadow:0 0 0 0 rgba(116,198,157,.6)}70%{transform:scale(1);box-shadow:0 0 0 10px rgba(116,198,157,0)}100%{transform:scale(.9);box-shadow:0 0 0 0 rgba(116,198,157,0)}}
+  .running-indicator{animation:pulse-ring 2s infinite;}
+
+  .progress-track{height:6px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--lime),var(--gold));border-radius:99px;transition:width .5s cubic-bezier(.34,1.56,.64,1);}
+
+  .input-field{background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.15);border-radius:14px;color:white;font-family:'DM Sans',sans-serif;font-size:18px;padding:16px 20px;width:100%;outline:none;transition:border-color .2s;}
+  .input-field::placeholder{color:rgba(255,255,255,.3);}
+  .input-field:focus{border-color:var(--lime);}
+
+  .stepper-btn{width:52px;height:52px;border-radius:12px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.15);color:white;font-size:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;user-select:none;}
+  .stepper-btn:active{background:var(--leaf);transform:scale(.9);}
+  .stepper-val{font-family:'Bebas Neue',sans-serif;font-size:48px;color:white;min-width:80px;text-align:center;}
+
+  .btn-primary{background:linear-gradient(135deg,var(--lime),#52b788);color:var(--forest);font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.08em;padding:18px 32px;border-radius:16px;border:none;cursor:pointer;width:100%;transition:all .2s;box-shadow:0 8px 24px rgba(116,198,157,.35);}
+  .btn-primary:active{transform:scale(.97);box-shadow:none;}
+
+  .badge{display:inline-flex;align-items:center;gap:6px;background:rgba(116,198,157,.15);border:1px solid rgba(116,198,157,.3);color:var(--lime);border-radius:99px;padding:4px 12px;font-size:13px;font-weight:600;}
+
+  .result-card{background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:16px;padding:16px 20px;margin-bottom:10px;}
+
+  @keyframes finish-in{0%{transform:translateY(30px);opacity:0}100%{transform:translateY(0);opacity:1}}
+  .finish-anim{animation:finish-in .6s ease-out forwards;}
+
+  .lap-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07);font-size:14px;}
+
+  @keyframes stop-pulse{0%,100%{box-shadow:0 8px 28px rgba(230,57,70,.45),0 0 0 0 rgba(230,57,70,.5)}50%{box-shadow:0 8px 28px rgba(230,57,70,.6),0 0 0 14px rgba(230,57,70,0)}}
+
+  .pin-dot{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.25);transition:all .2s;}
+  .pin-dot.filled{background:var(--lime);border-color:var(--lime);}
+  .pin-dot.error{background:#e63946;border-color:#e63946;}
+  .pin-key{aspect-ratio:1;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.12);border-radius:14px;color:white;font-family:'Bebas Neue',sans-serif;font-size:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;padding:0;min-height:62px;}
+  .pin-key:active{background:rgba(116,198,157,.2);transform:scale(.92);}
+  .pin-key-ghost{background:transparent;border-color:transparent;}
+
+  .filter-btn{background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:99px;color:rgba(255,255,255,.5);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:7px 16px;cursor:pointer;white-space:nowrap;transition:all .2s;}
+  .filter-btn.active{background:rgba(116,198,157,.15);border-color:rgba(116,198,157,.4);color:var(--lime);}
+
+  .race-row{background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);border-radius:14px;padding:14px 16px;margin-bottom:8px;transition:background .2s;}
+  .race-row:hover{background:rgba(255,255,255,.07);}
+  @keyframes row-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .race-row{animation:row-in .25s ease-out both;}
+
+  ::-webkit-scrollbar{width:4px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:rgba(116,198,157,.3);border-radius:99px;}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ SCREEN 1 — SETUP ══════════════ -->
+<div id="screen-setup" class="screen active topo-bg">
+  <div class="flex flex-col h-full px-6 py-10 max-w-md mx-auto w-full">
+
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center gap-3 mb-3">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <circle cx="18" cy="18" r="17" stroke="#74c69d" stroke-width="2"/>
+          <circle cx="18" cy="18" r="3" fill="#74c69d"/>
+          <line x1="18" y1="1" x2="18" y2="9" stroke="#74c69d" stroke-width="2" stroke-linecap="round"/>
+          <line x1="18" y1="27" x2="18" y2="35" stroke="#74c69d" stroke-width="2" stroke-linecap="round"/>
+          <line x1="1" y1="18" x2="9" y2="18" stroke="#74c69d" stroke-width="2" stroke-linecap="round"/>
+          <line x1="27" y1="18" x2="35" y2="18" stroke="#74c69d" stroke-width="2" stroke-linecap="round"/>
+          <polygon points="18,6 21,14 18,12 15,14" fill="#f0a500"/>
+        </svg>
+        <span class="font-display text-white" style="font-size:28px;letter-spacing:.05em;">ORIENTATION</span>
+      </div>
+      <p style="color:rgba(255,255,255,.4);font-size:12px;letter-spacing:.1em;text-transform:uppercase;">Suivi de course en temps réel</p>
+    </div>
+
+    <div class="flex-1 flex flex-col gap-6">
+      <div>
+        <label class="block text-xs font-semibold mb-2" style="color:var(--lime);letter-spacing:.12em;text-transform:uppercase;">Prénom du coureur</label>
+        <input id="input-prenom" class="input-field" type="text" placeholder="Ex: Alex, Marie..." maxlength="20" autocomplete="off"/>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold mb-3" style="color:var(--lime);letter-spacing:.12em;text-transform:uppercase;">Nombre de postes</label>
+        <div class="flex items-center justify-between gap-4">
+          <button class="stepper-btn" onclick="changePostes(-1)">−</button>
+          <div class="stepper-val" id="nb-postes">8</div>
+          <button class="stepper-btn" onclick="changePostes(1)">+</button>
+        </div>
+        <div class="progress-track mt-4"><div class="progress-fill" id="stepper-bar" style="width:43.75%"></div></div>
+        <div class="flex justify-between mt-1">
+          <span style="font-size:11px;color:rgba(255,255,255,.3);">1 poste</span>
+          <span style="font-size:11px;color:rgba(255,255,255,.3);">16 postes</span>
+        </div>
+      </div>
+      <div id="postes-preview" class="flex flex-wrap gap-2 justify-center py-2"></div>
+    </div>
+
+    <div class="mt-6">
+      <button class="btn-primary" onclick="startCountdown()">
+        <span class="flex items-center justify-center gap-2">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><polygon points="5,3 17,10 5,17"/></svg>
+          LANCER LA COURSE
+        </span>
+      </button>
+      <button onclick="showScreen('pin')" style="background:transparent;border:none;color:rgba(255,255,255,.25);font-family:'DM Sans',sans-serif;font-size:12px;padding:14px 8px 0;cursor:pointer;display:flex;align-items:center;gap:6px;margin:0 auto;letter-spacing:.04em;">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="3" y="6" width="8" height="6" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M4.5 6V4.5a2.5 2.5 0 0 1 5 0V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Espace enseignant
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SCREEN 2 — COUNTDOWN ══════════════ -->
+<div id="screen-countdown" class="screen topo-bg" style="align-items:center;justify-content:center;">
+  <div class="text-center">
+    <p class="mb-4 font-semibold tracking-widest uppercase text-sm" style="color:var(--lime);">Prépare-toi !</p>
+    <div id="countdown-display" class="countdown-num" style="color:white;">3</div>
+    <p id="countdown-name" class="mt-4 font-display text-2xl" style="color:rgba(255,255,255,.5);">—</p>
+  </div>
+</div>
+
+<!-- ══════════════ SCREEN 3 — RUNNING ══════════════ -->
+<div id="screen-running" class="screen topo-bg" style="flex-direction:column;">
+  <div class="flex flex-col h-full max-w-md mx-auto w-full px-4 py-4" style="overflow:hidden;">
+    <div class="flex items-center justify-between mb-3">
+      <div>
+        <p class="font-display text-xl" style="color:white;letter-spacing:.05em;" id="run-name">—</p>
+        <div class="badge mt-1">
+          <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#74c69d"/></svg>
+          <span>EN COURSE</span>
+        </div>
+        <p style="font-size:11px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:.04em;">Arrête le chrono au retour</p>
+      </div>
+      <div class="text-right">
+        <p class="text-xs font-semibold uppercase tracking-wider mb-1" style="color:rgba(255,255,255,.4);">Postes</p>
+        <p class="font-display text-2xl" style="color:white;"><span id="postes-done">0</span><span style="color:rgba(255,255,255,.3);">/<span id="postes-total">0</span></span></p>
+      </div>
+    </div>
+
+    <div class="progress-track mb-4"><div class="progress-fill" id="run-progress" style="width:0%"></div></div>
+
+    <div class="flex flex-col items-center justify-center py-3 running-indicator" style="background:rgba(255,255,255,.04);border-radius:20px;border:1.5px solid rgba(255,255,255,.08);">
+      <div class="timer-display" id="timer-display">00:00</div>
+      <div class="timer-ms" id="timer-ms">.000</div>
+    </div>
+
+    <div class="flex-1 mt-4 overflow-y-auto">
+      <p class="text-xs font-semibold uppercase tracking-wider mb-3" style="color:rgba(255,255,255,.4);">Valider les postes</p>
+      <div id="checkpoint-grid" class="grid gap-2" style="grid-template-columns:repeat(4,1fr);"></div>
+    </div>
+
+    <div class="flex flex-col gap-2 mt-4 pb-2">
+      <button id="btn-stop" onclick="finishRace()" style="background:linear-gradient(135deg,#e63946,#c1121f);color:white;font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.1em;padding:22px 32px;border-radius:18px;border:none;cursor:pointer;width:100%;box-shadow:0 8px 28px rgba(230,57,70,.45);transition:all .15s;display:flex;align-items:center;justify-content:center;gap:12px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="white" stroke-width="2" opacity=".6"/><rect x="8" y="8" width="8" height="8" rx="2" fill="white"/></svg>
+        STOP — RETOUR AU DÉPART
+      </button>
+      <button onclick="confirmAbandon()" style="background:transparent;border:none;color:rgba(255,255,255,.25);font-family:'DM Sans',sans-serif;font-size:13px;padding:8px;cursor:pointer;letter-spacing:.05em;text-decoration:underline;">Abandonner la course</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SCREEN 4 — RESULTS ══════════════ -->
+<div id="screen-results" class="screen topo-bg" style="overflow-y:auto;">
+  <div class="flex flex-col max-w-md mx-auto w-full px-6 py-10">
+    <div class="text-center mb-6 finish-anim">
+      <div id="result-medal" class="text-6xl mb-3">🏅</div>
+      <h1 class="font-display text-white mb-1" style="font-size:36px;letter-spacing:.05em;" id="result-title">COURSE TERMINÉE</h1>
+      <p class="font-semibold text-lg" style="color:var(--lime);" id="result-name">—</p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div class="result-card text-center finish-anim" style="animation-delay:.1s">
+        <p class="text-xs font-semibold uppercase tracking-wider mb-1" style="color:rgba(255,255,255,.4);">Temps total</p>
+        <p class="font-display text-white" style="font-size:28px;" id="result-time">—</p>
+      </div>
+      <div class="result-card text-center finish-anim" style="animation-delay:.2s">
+        <p class="text-xs font-semibold uppercase tracking-wider mb-1" style="color:rgba(255,255,255,.4);">Postes validés</p>
+        <p class="font-display text-white" style="font-size:28px;" id="result-postes">—</p>
+      </div>
+    </div>
+
+    <div class="result-card finish-anim" style="animation-delay:.3s">
+      <p class="text-xs font-semibold uppercase tracking-wider mb-3" style="color:rgba(255,255,255,.4);">Détail des postes</p>
+      <div id="result-laps"></div>
+    </div>
+
+    <div class="mt-6 finish-anim" style="animation-delay:.4s">
+      <button class="btn-primary" onclick="newRace()">
+        <span class="flex items-center justify-center gap-2">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9a6 6 0 1 1 2.1 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M3 14V9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          NOUVELLE COURSE
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SCREEN 5 — PIN ══════════════ -->
+<div id="screen-pin" class="screen topo-bg" style="align-items:center;justify-content:center;">
+  <div class="flex flex-col items-center px-8 w-full max-w-sm">
+    <div class="mb-8 text-center">
+      <div style="width:64px;height:64px;background:rgba(240,165,0,.15);border:2px solid rgba(240,165,0,.3);border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <rect x="6" y="12" width="16" height="12" rx="3" stroke="#f0a500" stroke-width="2"/>
+          <path d="M9 12V9a5 5 0 0 1 10 0v3" stroke="#f0a500" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="14" cy="18" r="2" fill="#f0a500"/>
+        </svg>
+      </div>
+      <h2 class="font-display text-white mb-1" style="font-size:28px;letter-spacing:.05em;">ESPACE PROF</h2>
+      <p style="color:rgba(255,255,255,.35);font-size:14px;">Entrez le code d'accès</p>
+    </div>
+    <div class="flex gap-4 mb-8">
+      <div class="pin-dot" id="dot-0"></div>
+      <div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div>
+      <div class="pin-dot" id="dot-3"></div>
+    </div>
+    <p id="pin-error" style="color:#e63946;font-size:13px;margin-bottom:12px;min-height:18px;text-align:center;"></p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;">
+      <button class="pin-key" onclick="pinPress('1')">1</button>
+      <button class="pin-key" onclick="pinPress('2')">2</button>
+      <button class="pin-key" onclick="pinPress('3')">3</button>
+      <button class="pin-key" onclick="pinPress('4')">4</button>
+      <button class="pin-key" onclick="pinPress('5')">5</button>
+      <button class="pin-key" onclick="pinPress('6')">6</button>
+      <button class="pin-key" onclick="pinPress('7')">7</button>
+      <button class="pin-key" onclick="pinPress('8')">8</button>
+      <button class="pin-key" onclick="pinPress('9')">9</button>
+      <button class="pin-key pin-key-ghost" onclick="pinBack()">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M13 5L7 10l6 5" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <button class="pin-key" onclick="pinPress('0')">0</button>
+      <button class="pin-key pin-key-ghost" onclick="showScreen('setup')">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 4l12 12M16 4L4 16" stroke="rgba(255,255,255,.5)" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <p style="color:rgba(255,255,255,.2);font-size:11px;margin-top:20px;">Code par défaut : 1234</p>
+  </div>
+</div>
+
+<!-- ══════════════ SCREEN 6 — TABLEAU PROF ══════════════ -->
+<div id="screen-prof" class="screen topo-bg" style="flex-direction:column;overflow-y:auto;">
+  <div class="flex flex-col max-w-lg mx-auto w-full px-4 py-6">
+
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="font-display text-white" style="font-size:28px;letter-spacing:.05em;">TABLEAU DE BORD</h1>
+        <p style="color:rgba(255,255,255,.35);font-size:13px;">Vue enseignant</p>
+      </div>
+      <button onclick="showScreen('setup')" style="background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 14px;color:rgba(255,255,255,.6);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L1 7l6 6M1 7h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Élèves
+      </button>
+    </div>
+
+    <div class="grid grid-cols-3 gap-2 mb-5" id="prof-stats"></div>
+
+    <div class="flex gap-2 mb-4 overflow-x-auto pb-1" style="scrollbar-width:none;">
+      <button class="filter-btn active" onclick="setFilter('all')" id="filter-all">Tous</button>
+      <button class="filter-btn" onclick="setFilter('complet')" id="filter-complet">✓ Complets</button>
+      <button class="filter-btn" onclick="setFilter('incomplet')" id="filter-incomplet">⚠ Incomplets</button>
+    </div>
+
+    <div class="flex items-center gap-2 mb-4">
+      <p style="color:rgba(255,255,255,.35);font-size:12px;white-space:nowrap;">Trier par :</p>
+      <select id="sort-select" onchange="renderProfTable()" style="background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.12);border-radius:8px;color:rgba(255,255,255,.7);font-size:13px;padding:6px 10px;cursor:pointer;outline:none;font-family:'DM Sans',sans-serif;flex:1;">
+        <option value="date_desc">Plus récent</option>
+        <option value="date_asc">Plus ancien</option>
+        <option value="time_asc">Meilleur temps</option>
+        <option value="time_desc">Temps le plus long</option>
+        <option value="postes_desc">Plus de postes</option>
+        <option value="name_asc">Prénom A→Z</option>
+      </select>
+      <button onclick="confirmClearAll()" style="background:rgba(230,57,70,.12);border:1.5px solid rgba(230,57,70,.25);border-radius:8px;padding:6px 10px;cursor:pointer;color:#e63946;font-size:12px;white-space:nowrap;">🗑 Tout effacer</button>
+    </div>
+
+    <!-- EXPORT PDF -->
+    <button id="btn-export-pdf" onclick="exportPDF()" style="background:linear-gradient(135deg,#f0a500,#c97d00);color:#1a2e1a;font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:.1em;padding:15px 20px;border-radius:14px;border:none;cursor:pointer;width:100%;margin-bottom:18px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 20px rgba(240,165,0,.3);transition:all .2s;">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 14v2a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10 3v9m0 0-3-3m3 3 3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      EXPORTER EN PDF
+    </button>
+
+    <div id="prof-table"></div>
+  </div>
+</div>
+
+<script>
+// ─── STATE ────────────────────────────────────────────
+let state = { prenom:'', nbPostes:8, validated:[], laps:[], startTime:null, timerInterval:null, isRunning:false, finalTime:0 };
+
+// ─── AUDIO ────────────────────────────────────────────
+let audioCtx=null;
+function getAudio(){ if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)(); return audioCtx; }
+function beep(f=880,d=.1,t='sine',v=.4){ try{ const c=getAudio(),o=c.createOscillator(),g=c.createGain(); o.connect(g);g.connect(c.destination);o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start(c.currentTime);o.stop(c.currentTime+d); }catch(e){} }
+function beepStart(){ beep(440,.08);setTimeout(()=>beep(880,.15,'sine',.5),120); }
+function beepCheckpoint(){ beep(1047,.06,'square',.3); }
+function beepCountdown(last){ if(last){beep(880,.08);setTimeout(()=>beep(1175,.12),100);setTimeout(()=>beep(1760,.2),220);}else beep(440,.12,'sine',.35); }
+function beepFinish(){ [0,150,300,500].forEach((d,i)=>setTimeout(()=>beep(440*[1,1.25,1.5,2][i],.15,'sine',.4),d)); }
+
+// ─── SETUP ────────────────────────────────────────────
+function renderPostesPreview(){
+  const c=document.getElementById('postes-preview'); c.innerHTML='';
+  for(let i=1;i<=state.nbPostes;i++){ const d=document.createElement('div'); d.style.cssText="width:28px;height:28px;border-radius:50%;background:rgba(116,198,157,.15);border:1.5px solid rgba(116,198,157,.3);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;color:rgba(116,198,157,.7);"; d.textContent=i; c.appendChild(d); }
+}
+function changePostes(d){ state.nbPostes=Math.min(16,Math.max(1,state.nbPostes+d)); document.getElementById('nb-postes').textContent=state.nbPostes; document.getElementById('stepper-bar').style.width=((state.nbPostes/16)*100)+'%'; renderPostesPreview(); beep(d>0?600:400,.05,'square',.2); }
+
+// ─── SCREENS ──────────────────────────────────────────
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById('screen-'+id).classList.add('active'); }
+
+// ─── COUNTDOWN ────────────────────────────────────────
+function startCountdown(){
+  const p=document.getElementById('input-prenom').value.trim();
+  if(!p){ document.getElementById('input-prenom').focus(); document.getElementById('input-prenom').style.borderColor='#e63946'; setTimeout(()=>document.getElementById('input-prenom').style.borderColor='',1500); return; }
+  state.prenom=p; state.validated=[]; state.laps=[];
+  try{getAudio();}catch(e){}
+  showScreen('countdown');
+  document.getElementById('countdown-name').textContent=p.toUpperCase();
+  let count=3; const D=document.getElementById('countdown-display');
+  const tick=()=>{ D.style.animation='none';D.offsetHeight;D.style.animation=''; D.textContent=count; beepCountdown(count===1); if(count===1){ setTimeout(()=>{ D.style.animation='none';D.offsetHeight;D.style.animation=''; D.textContent='GO!';D.style.color='#74c69d'; beepStart();setTimeout(startRace,700); },900); } else{ count--;setTimeout(tick,1000); } };
+  setTimeout(tick,300);
+}
+
+// ─── RACE ─────────────────────────────────────────────
+function startRace(){
+  showScreen('running');
+  document.getElementById('run-name').textContent=state.prenom.toUpperCase();
+  document.getElementById('postes-total').textContent=state.nbPostes;
+  document.getElementById('postes-done').textContent=0;
+  document.getElementById('run-progress').style.width='0%';
+  buildCheckpointGrid();
+  state.startTime=performance.now(); state.isRunning=true; state.laps=[];
+  state.timerInterval=setInterval(updateTimer,50);
+}
+function buildCheckpointGrid(){
+  const g=document.getElementById('checkpoint-grid'); g.innerHTML='';
+  const n=state.nbPostes; g.style.gridTemplateColumns=n<=4?`repeat(${n},1fr)`:n<=9?'repeat(3,1fr)':'repeat(4,1fr)';
+  for(let i=1;i<=n;i++){ const b=document.createElement('button'); b.className='checkpoint-btn'; b.id=`cp-${i}`; b.innerHTML=`<span>${i}</span><span class="checkpoint-label">Poste</span>`; b.onclick=()=>validateCheckpoint(i); g.appendChild(b); }
+}
+function validateCheckpoint(num){
+  if(!state.isRunning) return;
+  if(state.validated.includes(num)){ state.validated=state.validated.filter(n=>n!==num); state.laps=state.laps.filter(l=>l.num!==num); const b=document.getElementById(`cp-${num}`); b.classList.remove('validated'); b.innerHTML=`<span>${num}</span><span class="checkpoint-label">Poste</span>`; updateRunProgress(); return; }
+  const e=performance.now()-state.startTime; state.validated.push(num); state.laps.push({num,time:e});
+  const b=document.getElementById(`cp-${num}`); b.classList.add('validated');
+  b.innerHTML=`<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10l5 5 7-8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="checkpoint-label" style="color:rgba(255,255,255,.9)">✓ ${num}</span>`;
+  beepCheckpoint(); updateRunProgress();
+  if(state.validated.length===state.nbPostes){ const s=document.getElementById('btn-stop'); if(s){ s.style.animation='none'; s.style.animation='stop-pulse 1s ease-in-out infinite'; } }
+}
+function updateRunProgress(){ const p=(state.validated.length/state.nbPostes)*100; document.getElementById('run-progress').style.width=p+'%'; document.getElementById('postes-done').textContent=state.validated.length; }
+function updateTimer(){ if(!state.isRunning) return; const e=performance.now()-state.startTime; document.getElementById('timer-display').textContent=fmt(e); document.getElementById('timer-ms').textContent='.'+String(Math.floor(e%1000)).padStart(3,'0'); }
+function fmt(ms){ const t=Math.floor(ms/1000); return `${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`; }
+function fmtFull(ms){ const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000),x=Math.floor(ms%1000); return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(x).padStart(3,'0')}`; }
+
+function finishRace(){ if(!state.isRunning) return; state.isRunning=false; state.finalTime=performance.now()-state.startTime; clearInterval(state.timerInterval); saveRace(); beepFinish(); showResults(); }
+function confirmAbandon(){ if(window.confirm('Abandonner la course ? Le temps ne sera pas enregistré.')){ state.isRunning=false; clearInterval(state.timerInterval); newRace(); } }
+
+// ─── RESULTS ──────────────────────────────────────────
+function showResults(){
+  showScreen('results');
+  const p=state.validated.length/state.nbPostes;
+  document.getElementById('result-medal').textContent=p===1?'🥇':p>=.75?'🥈':p>=.5?'🥉':'🏃';
+  document.getElementById('result-title').textContent=p===1?'PARCOURS COMPLET !':p>=.5?'BELLE COURSE !':'COURSE TERMINÉE';
+  document.getElementById('result-name').textContent=state.prenom.toUpperCase();
+  document.getElementById('result-time').textContent=fmtFull(state.finalTime);
+  document.getElementById('result-postes').textContent=`${state.validated.length} / ${state.nbPostes}`;
+  const L=document.getElementById('result-laps');
+  if(!state.laps.length){ L.innerHTML='<p style="color:rgba(255,255,255,.3);text-align:center;font-size:14px;">Aucun poste validé</p>'; return; }
+  const sorted=[...state.laps].sort((a,b)=>a.time-b.time); let prev=0;
+  L.innerHTML=sorted.map(l=>{ const sp=l.time-prev; prev=l.time; return `<div class="lap-item"><div class="flex items-center gap-3"><div style="width:28px;height:28px;border-radius:50%;background:rgba(116,198,157,.15);border:1px solid rgba(116,198,157,.3);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--lime);">${l.num}</div><div><p style="color:rgba(255,255,255,.8);font-weight:500;">Poste ${l.num}</p><p style="color:rgba(255,255,255,.35);font-size:12px;">+${fmtFull(sp)}</p></div></div><div class="font-display text-right" style="font-size:18px;color:white;">${fmtFull(l.time)}</div></div>`; }).join('');
+}
+function newRace(){ showScreen('setup'); document.getElementById('countdown-display').style.color='white'; document.getElementById('countdown-display').textContent='3'; }
+
+// ─── SAVE / LOAD (localStorage) ───────────────────────
+function saveRace(){
+  const record={ id:Date.now(), prenom:state.prenom, nbPostes:state.nbPostes, validated:state.validated.length, finalTime:state.finalTime, laps:state.laps, date:new Date().toISOString(), complete:state.validated.length===state.nbPostes };
+  const arr=getRaces(); arr.push(record); localStorage.setItem('orientation_races',JSON.stringify(arr));
+}
+function getRaces(){ try{ return JSON.parse(localStorage.getItem('orientation_races')||'[]'); }catch{ return []; } }
+
+// ─── PIN ──────────────────────────────────────────────
+const PIN='1234'; let pin='';
+function pinPress(d){ if(pin.length>=4) return; pin+=d; updateDots(); if(pin.length===4) setTimeout(checkPin,200); }
+function pinBack(){ if(pin.length>0){ pin=pin.slice(0,-1); updateDots(); } }
+function updateDots(){ for(let i=0;i<4;i++) document.getElementById('dot-'+i).classList.toggle('filled',i<pin.length); }
+function checkPin(){
+  if(pin===PIN){ pin=''; updateDots(); document.getElementById('pin-error').textContent=''; openProf(); }
+  else{ document.querySelectorAll('.pin-dot').forEach(d=>{d.classList.remove('filled');d.classList.add('error');}); document.getElementById('pin-error').textContent='Code incorrect, réessayez.'; setTimeout(()=>{ pin=''; updateDots(); document.querySelectorAll('.pin-dot').forEach(d=>d.classList.remove('error')); },900); }
+}
+
+// ─── PROF DASHBOARD ───────────────────────────────────
+let currentFilter='all';
+
+function openProf(){
+  currentFilter='all';
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('filter-all').classList.add('active');
+  document.getElementById('sort-select').value='date_desc';
+  showScreen('prof'); renderProfDashboard();
+}
+function setFilter(f){ currentFilter=f; document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); document.getElementById('filter-'+f).classList.add('active'); renderProfTable(); }
+function renderProfDashboard(){ renderProfStats(); renderProfTable(); }
+
+function renderProfStats(){
+  const races=getRaces(), total=races.length, complets=races.filter(r=>r.complete).length;
+  const best=races.filter(r=>r.complete).sort((a,b)=>a.finalTime-b.finalTime)[0];
+  document.getElementById('prof-stats').innerHTML=`
+    <div style="background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:14px;padding:14px;text-align:center;"><p class="font-display text-white" style="font-size:32px;">${total}</p><p style="color:rgba(255,255,255,.4);font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-top:2px;">Courses</p></div>
+    <div style="background:rgba(116,198,157,.08);border:1.5px solid rgba(116,198,157,.2);border-radius:14px;padding:14px;text-align:center;"><p class="font-display" style="font-size:32px;color:var(--lime);">${complets}</p><p style="color:rgba(255,255,255,.4);font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-top:2px;">Complets</p></div>
+    <div style="background:rgba(240,165,0,.08);border:1.5px solid rgba(240,165,0,.2);border-radius:14px;padding:14px;text-align:center;"><p class="font-display" style="font-size:${best?'15px':'32px'};color:var(--gold);line-height:1.15;">${best?fmtFull(best.finalTime):'—'}</p><p style="color:rgba(255,255,255,.4);font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-top:2px;">Record</p></div>`;
+}
+
+function renderProfTable(){
+  let races=getRaces(); const sort=document.getElementById('sort-select').value;
+  if(currentFilter==='complet')   races=races.filter(r=>r.complete);
+  if(currentFilter==='incomplet') races=races.filter(r=>!r.complete);
+  const sorts={date_desc:(a,b)=>b.id-a.id,date_asc:(a,b)=>a.id-b.id,time_asc:(a,b)=>a.finalTime-b.finalTime,time_desc:(a,b)=>b.finalTime-a.finalTime,postes_desc:(a,b)=>b.validated-a.validated,name_asc:(a,b)=>a.prenom.localeCompare(b.prenom)};
+  if(sorts[sort]) races.sort(sorts[sort]);
+  const c=document.getElementById('prof-table');
+  if(!races.length){ c.innerHTML='<div style="text-align:center;padding:48px 0;color:rgba(255,255,255,.2);"><div style="font-size:40px;margin-bottom:12px;">🏃</div><p style="font-size:14px;">Aucune course enregistrée</p></div>'; return; }
+  c.innerHTML=races.map((r,i)=>{
+    const pct=Math.round((r.validated/r.nbPostes)*100);
+    const medal=r.complete?'🥇':pct>=75?'🥈':pct>=50?'🥉':'🏃';
+    const dateStr=new Date(r.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+    const bar=r.complete?'var(--lime)':pct>=50?'var(--gold)':'#e63946';
+    return `<div class="race-row" style="animation-delay:${i*.04}s"><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-3"><span style="font-size:22px;">${medal}</span><div><p class="font-display text-white" style="font-size:20px;letter-spacing:.03em;">${r.prenom}</p><p style="color:rgba(255,255,255,.3);font-size:11px;">${dateStr}</p></div></div><div class="text-right"><p class="font-display text-white" style="font-size:20px;">${fmtFull(r.finalTime)}</p><p style="color:rgba(255,255,255,.35);font-size:12px;">${r.validated}/${r.nbPostes} postes</p></div></div><div style="height:4px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${bar};border-radius:99px;transition:width .5s;"></div></div></div>`;
+  }).join('');
+}
+
+function confirmClearAll(){ if(window.confirm('Supprimer toutes les courses enregistrées ?')){ localStorage.removeItem('orientation_races'); renderProfDashboard(); } }
+
+
+// ─── EXPORT PDF ───────────────────────────────────────
+function exportPDF(){
+  const races = getRaces();
+  if(!races.length){ alert('Aucune course à exporter.'); return; }
+
+  const btn = document.getElementById('btn-export-pdf');
+  btn.textContent = '⏳ Génération…'; btn.disabled = true;
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const W = doc.internal.pageSize.getWidth();
+    const now = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+    // ── HEADER BAR ──
+    doc.setFillColor(26, 58, 42);
+    doc.rect(0, 0, W, 28, 'F');
+
+    // Compass icon (simplified as circle + cross)
+    doc.setDrawColor(116, 198, 157); doc.setLineWidth(0.6);
+    doc.circle(14, 14, 7, 'S');
+    doc.line(14, 7.5, 14, 20.5); doc.line(7.5, 14, 20.5, 14);
+    doc.setFillColor(240, 165, 0);
+    doc.triangle(12.5, 9, 15.5, 9, 14, 7, 'F');
+
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(20); doc.setTextColor(255,255,255);
+    doc.text("COURSE D'ORIENTATION", 25, 12);
+    doc.setFontSize(9); doc.setTextColor(116, 198, 157);
+    doc.text('Rapport des résultats — exporté le ' + now, 25, 20);
+
+    // ── STATS ROW ──
+    const complets = races.filter(r=>r.complete).length;
+    const best = races.filter(r=>r.complete).sort((a,b)=>a.finalTime-b.finalTime)[0];
+
+    const statsY = 36;
+    const boxes = [
+      { label:'COURSES', value: String(races.length),        color:[240,248,244] },
+      { label:'COMPLETS', value: String(complets),           color:[232,246,238] },
+      { label:'RECORD',   value: best ? fmtFull(best.finalTime) : '—', color:[255,248,230] },
+    ];
+    boxes.forEach((b, i) => {
+      const x = 14 + i * 60;
+      doc.setFillColor(...b.color);
+      doc.roundedRect(x, statsY, 54, 18, 3, 3, 'F');
+      doc.setFontSize(16); doc.setFont('helvetica','bold');
+      doc.setTextColor(26, 58, 42);
+      doc.text(b.value, x + 27, statsY + 10, { align:'center' });
+      doc.setFontSize(7); doc.setFont('helvetica','normal');
+      doc.setTextColor(100, 130, 110);
+      doc.text(b.label, x + 27, statsY + 15.5, { align:'center' });
+    });
+
+    // ── SECTION TITLE ──
+    doc.setFontSize(10); doc.setFont('helvetica','bold');
+    doc.setTextColor(26, 58, 42);
+    doc.text('DÉTAIL DES COURSES', 14, 64);
+    doc.setDrawColor(116, 198, 157); doc.setLineWidth(0.4);
+    doc.line(14, 66, W - 14, 66);
+
+    // ── TABLE ──
+    const sorted = [...races].sort((a,b) => b.id - a.id);
+    const rows = sorted.map((r, i) => {
+      const pct = Math.round((r.validated / r.nbPostes) * 100);
+      const medal = r.complete ? '🥇' : pct >= 75 ? '🥈' : pct >= 50 ? '🥉' : '—';
+      const dateStr = new Date(r.date).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+      return [
+        String(i + 1),
+        r.prenom,
+        fmtFull(r.finalTime),
+        r.validated + ' / ' + r.nbPostes,
+        pct + '%',
+        r.complete ? 'Complet' : 'Incomplet',
+        dateStr,
+      ];
+    });
+
+    doc.autoTable({
+      startY: 70,
+      head: [['#', 'Prénom', 'Temps', 'Postes', '%', 'Statut', 'Date']],
+      body: rows,
+      theme: 'plain',
+      styles: { font:'helvetica', fontSize:9, cellPadding:3.5, textColor:[40,60,50], lineColor:[220,235,225], lineWidth:0.3 },
+      headStyles: { fillColor:[26,58,42], textColor:[116,198,157], fontStyle:'bold', fontSize:8, cellPadding:3 },
+      alternateRowStyles: { fillColor:[245,252,248] },
+      columnStyles: {
+        0: { cellWidth:8,  halign:'center' },
+        1: { cellWidth:32, fontStyle:'bold' },
+        2: { cellWidth:28, halign:'center' },
+        3: { cellWidth:20, halign:'center' },
+        4: { cellWidth:14, halign:'center' },
+        5: { cellWidth:22, halign:'center' },
+        6: { cellWidth:34, halign:'center', fontSize:8 },
+      },
+      didDrawCell: (data) => {
+        // Color the Statut cell
+        if(data.section==='body' && data.column.index===5){
+          const isComplete = data.cell.raw === 'Complet';
+          doc.setFillColor(isComplete ? 232 : 254, isComplete ? 246 : 235, isComplete ? 238 : 235);
+          doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+          doc.setTextColor(isComplete ? 45 : 180, isComplete ? 106 : 80, isComplete ? 79 : 70);
+          doc.setFontSize(8); doc.setFont('helvetica','bold');
+          doc.text(data.cell.raw, data.cell.x + data.cell.width/2, data.cell.y + data.cell.height/2 + 1, {align:'center'});
+        }
+      },
+    });
+
+    // ── FOOTER ──
+    const pageCount = doc.internal.getNumberOfPages();
+    for(let p = 1; p <= pageCount; p++){
+      doc.setPage(p);
+      doc.setFillColor(26, 58, 42);
+      doc.rect(0, doc.internal.pageSize.getHeight() - 10, W, 10, 'F');
+      doc.setFontSize(7); doc.setFont('helvetica','normal');
+      doc.setTextColor(116, 198, 157);
+      doc.text("Course d'Orientation - Espace Enseignant", 14, doc.internal.pageSize.getHeight() - 4);
+      doc.text('Page ' + p + ' / ' + pageCount, W - 14, doc.internal.pageSize.getHeight() - 4, { align:'right' });
+    }
+
+    // ── SAVE ──
+    const filename = 'resultats_orientation_' + new Date().toISOString().slice(0,10) + '.pdf';
+    doc.save(filename);
+
+  } catch(e) {
+    alert('Erreur lors de la génération PDF : ' + e.message);
+    console.error(e);
+  } finally {
+    btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 14v2a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10 3v9m0 0-3-3m3 3 3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> EXPORTER EN PDF';
+    btn.disabled = false;
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────
+renderPostesPreview();
+</script>
+
+<!-- ═══ PWA INSTALL BANNER ═══ -->
+<div id="pwa-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#1a3a2a,#2d6a4f);border-top:1.5px solid rgba(116,198,157,0.3);padding:14px 20px;display:none;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 -4px 24px rgba(0,0,0,0.4);">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <img src="./icon-192.png" style="width:40px;height:40px;border-radius:10px;">
+    <div>
+      <p style="color:white;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.05em;line-height:1.1;">INSTALLER L'APPLICATION</p>
+      <p style="color:rgba(255,255,255,0.5);font-size:11px;font-family:'DM Sans',sans-serif;">Accès rapide, fonctionne hors-ligne</p>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;flex-shrink:0;">
+    <button id="pwa-dismiss" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.5);font-family:'DM Sans',sans-serif;font-size:12px;padding:8px 12px;cursor:pointer;">Plus tard</button>
+    <button id="pwa-install" style="background:linear-gradient(135deg,#74c69d,#52b788);border:none;border-radius:8px;color:#1a3a2a;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.06em;padding:8px 16px;cursor:pointer;">INSTALLER</button>
+  </div>
+</div>
+
+<script>
+// ═══ SERVICE WORKER ═══
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.warn('SW failed:', err));
+  });
+}
+
+// ═══ PWA INSTALL PROMPT ═══
+let deferredPrompt = null;
+const banner = document.getElementById('pwa-banner');
+const btnInstall = document.getElementById('pwa-install');
+const btnDismiss = document.getElementById('pwa-dismiss');
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  banner.style.display = 'flex';
+});
+
+btnInstall && btnInstall.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  banner.style.display = 'none';
+});
+
+btnDismiss && btnDismiss.addEventListener('click', () => {
+  banner.style.display = 'none';
+});
+
+window.addEventListener('appinstalled', () => {
+  banner.style.display = 'none';
+  deferredPrompt = null;
+});
+</script>
+
+</body>
+</html>
